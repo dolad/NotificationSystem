@@ -1,96 +1,60 @@
-import e from 'express';
 import * as fs from 'fs';
-
-export let saveArray : Array<any> = []
-
-export const fileExistsSync = (file:any) => {
-    try {
-        fs.accessSync(file, fs.constants.R_OK | fs.constants.W_OK);
-        return true;
-      } catch (err) {
-        return false;
-      }
-}
+import {Subscriber} from  '../models/subscriber'
+import mongoose from 'mongoose';
 
 export class SubscriptionService {
-    private subscriptionToJson : string ;
-    private holdSubscription : Array<any> ;
-    private getSubscriptionFromJson :  Array<any> ;
-    constructor(){
-        this.subscriptionToJson = 'subscription.json';
-        this.holdSubscription = [];
-        this.getSubscriptionFromJson = []
-    }
+   
     public createSubscription (req:any, res:any, next:any)  {
         return new Promise (async (resolve, reject) => {
             try {
-                const topic = req.params.topic;
-                const url = req.body.url;
-                const formData = {topic,url}
-                const result =  this.saveSubscriptionToJSON(formData);
-                // console.log('get some result',result);
-                resolve(result);
+                const subscriber = new Subscriber({
+                    id:new mongoose.Types.ObjectId(),
+                    topic: req.params.topic,
+                    url:req.body.url
+                })
+                const saveSubscriber = subscriber.save();
+                // const {topic, url} = saveSubscriber;
+               const topic = (await saveSubscriber).topic;
+               const url = (await saveSubscriber).url;
+
+                resolve({topic, url});
+                                
             } catch (error) {
                 reject(error);
             }
         })
     }
 
-    public getAllSubscription(req:any, res:any, next:any){
+    public async getAllSubscription(req:any, res:any, next:any){
         return new Promise (async (resolve, reject) => {
             try {
-                const result = this.readSubscriptionJSON()
-                resolve(result)
+                const subscriber = await Subscriber.find({}).exec();
+                if(subscriber.length !== null){
+                    resolve(subscriber);
+                }else{
+                    return res
+                    .status(409)
+                    .json({message:"cant any subscriber", error:true});
+                }
             } catch (error) {
                 reject(error);
             }
         } )
     }
 
-    // public getOneSubscription(req:any, res:any, next:any){
-    //     return new Promise (async (resolve, reject) => {
-    //         try {
-    //             const result =this.readSubscriptionJSON()
-    //             resolve(result);
-    //         } catch (error) {
-    //             reject(error);
-    //         }
-    //     })
-    // }
-
-    private  saveSubscriptionToJSON(data:any) : any  {   
-        try {
-            const checkIfFileExist = fileExistsSync(this.subscriptionToJson);
-            if (!checkIfFileExist){
-                fs.writeFile(this.subscriptionToJson, JSON.stringify(data),(err) => {
-                    if (err){
-                      console.log(err)
-                      return err
-                    }
-                     });
-                    return data ;
-            } else {
-                fs.appendFile(this.subscriptionToJson, JSON.stringify(data), 'utf8',  (error) => {
-                    if(error) return ; 
-                })
+    public async getSubscription (req:any, res:any, next:any){
+        return new Promise(async (resolve, reject) => {
+            try {
+                const subscriber = await Subscriber.findOne({topic:req.params.topic}).exec();
+                if(subscriber !== null){
+                    resolve(subscriber);
+                }else{
+                    return res.status(404).json({message:"cant find subscriber", error:true})
+                }
+            } catch (error) {
+                
             }
-            
-        } catch (error) {
-            console.log(error)
-        }
-       
-       
+        })
     }
-
-    private async readSubscriptionJSON() : Promise<any> {
-       const data = fs.readFileSync(this.subscriptionToJson, 'utf8' ) 
-        console.log("inside get",data);
-        this.getSubscriptionFromJson.push(JSON.parse(data));
-        console.log('get all from json', this.getSubscriptionFromJson);
-        return this.getSubscriptionFromJson;
-
-    }
-
-    
     
 }

@@ -8,14 +8,15 @@ export class Subscription extends Router {
     }
 
     private _initializeRoutes(){
+       
         this.router.post('/subscribe/:topic', this.createSubscription);
-        this.router.get('/subscribe', this.getSubscription)
+        this.router.get('/subscribe', this.getSubscription);
+        this.router.get('/subscribe/:topic', this.getSingleSubscription);
     }
     private async createSubscription(req : Request , res: Response, next: NextFunction){
         try {
             const subscription = new SubscriptionService();
             const response = await subscription.createSubscription(req, res, next);
-            console.log('response', response);
             return res.status(200).json(response);            
         } catch (error) {
             return res.status(500).json({message:error.message, error:"error"})
@@ -26,6 +27,15 @@ export class Subscription extends Router {
         try {
             const subscription = new SubscriptionService();
             const response = await subscription.getAllSubscription(req, res, next);
+            return res.status(200).json({response})
+        } catch (error) {
+            return res.status(500).json({message:error.message, error:"error"})
+        }
+    }
+    private async getSingleSubscription(req : Request , res: Response, next: NextFunction){
+        try {
+            const subscription = new SubscriptionService();
+            const response = await subscription.getSubscription(req, res, next);
             return res.status(200).json({response})
         } catch (error) {
             return res.status(500).json({message:error.message, error:"error"})
